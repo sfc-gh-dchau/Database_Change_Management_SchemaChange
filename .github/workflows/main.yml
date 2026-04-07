@@ -26,24 +26,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install schemachange
 
-      - name: Run schemachange
+      - name: Verify Snowflake connectivity
         env:
-          SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
-          SF_USERNAME: ${{ secrets.SF_USERNAME }}
-          SF_ROLE: ${{ secrets.SF_ROLE }}
-          SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
-          SF_DATABASE: ${{ secrets.SF_DATABASE }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SF_USERNAME }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ secrets.SF_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SF_DATABASE }}
         run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           python --version
-          echo "Running schemachange"
-          schemachange \
+          schemachange verify -L DEBUG
+
+      - name: Deploy migrations
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SF_USERNAME }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ secrets.SF_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SF_DATABASE }}
+        run: |
+          schemachange deploy \
             -f "$GITHUB_WORKSPACE/migrations" \
-            -a "$SF_ACCOUNT" \
-            -u "$SF_USERNAME" \
-            -r "$SF_ROLE" \
-            -w "$SF_WAREHOUSE" \
-            -d "$SF_DATABASE" \
-            -c "$SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY" \
-            --create-change-history-table
+            -c "${SNOWFLAKE_DATABASE}.SCHEMACHANGE.CHANGE_HISTORY" \
+            --create-change-history-table \
+            -L DEBUG
